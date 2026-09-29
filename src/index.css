@@ -1,0 +1,201 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Universal Spin Keyframes */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Engine Vibration Micro-Pulse */
+@keyframes engineRumble {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-1.5px) rotate(0.06deg);
+  }
+  50% {
+    transform: translateY(1.0px) rotate(-0.05deg);
+  }
+  75% {
+    transform: translateY(-0.8px) rotate(0.04deg);
+  }
+}
+
+.animate-engine-rumble {
+  animation: engineRumble 0.11s infinite linear;
+}
+
+/* Headlight Lens Flare Glow */
+@keyframes headlightPulse {
+  0%, 100% {
+    opacity: 0.88;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+.animate-headlight-pulse {
+  animation: headlightPulse 1.8s infinite ease-in-out;
+}
+
+/* Speed Rush Streak Animation */
+@keyframes speedStreak {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+.animate-speed-streak {
+  animation: speedStreak 0.6s infinite linear;
+}
+
+/* Wheel 360-Degree Rotation Keyframes */
+@keyframes spinWheel {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-wheel-spin {
+  animation: spinWheel 0.16s linear infinite;
+}
+
+.animate-wheel-spin-fast {
+  animation: spinWheel 0.09s linear infinite;
+}
+
+/* Realistic Motorcycle Riding Suspension Bobbing & Micro-Pitch */
+@keyframes ridingMotion {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  20% {
+    transform: translateY(-2.2px) rotate(0.18deg);
+  }
+  45% {
+    transform: translateY(1.2px) rotate(-0.12deg);
+  }
+  70% {
+    transform: translateY(-1.0px) rotate(0.08deg);
+  }
+  85% {
+    transform: translateY(0.8px) rotate(-0.06deg);
+  }
+}
+
+.animate-riding-motion {
+  animation: ridingMotion 0.22s infinite ease-in-out;
+}
+
+/* Asphalt Road Texture Roll */
+@keyframes roadRoll {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: -240px 0;
+  }
+}
+
+.animate-road-roll {
+  animation: roadRoll 0.35s linear infinite;
+}
+
+/* 3-State Animation Controller: Cross-Fade Transitions */
+@keyframes crossFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes crossFadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.005);
+  }
+}
+
+.animate-cross-fade-in {
+  animation: crossFadeIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-cross-fade-out {
+  animation: crossFadeOut 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Seated Helmet-Adjustment Idle Pose: Hips anchored firmly to saddle (32% 52%) */
+@keyframes helmetIdleBreathing {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.002);
+  }
+}
+
+.animate-helmet-idle {
+  transform-origin: 32% 52%; /* Exact hip and saddle contact point - zero floating */
+  animation: helmetIdleBreathing 3.6s ease-in-out infinite;
+}
+
+/* Mount Step-Over Motion Curve with smooth >=0.5s blend */
+@keyframes riderMountAction {
+  0% {
+    opacity: 0;
+    transform: scale(0.99) translateY(-2px);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0px);
+  }
+}
+
+.animate-rider-mount-action {
+  animation: riderMountAction 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Full height setup with pristine white studio showroom background */
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #ffffff;
+  color: #0f172a;
+  overflow: hidden;
+}
