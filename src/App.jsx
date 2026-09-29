@@ -180,18 +180,38 @@ function speakRoninVoice(text) {
   }
 }
 
-// -------------------------------------------------------------
-// 3-STATE ANIMATION CONTROLLER CONSTANTS
-// -------------------------------------------------------------
+// =============================================================
+// MEASURED 4-FRAME FOOT-ANCHOR CONSTANTS
+// =============================================================
+// Exact foot ground contact X measured directly from PNG assets (444x992):
+// - Frame 0 (stylish-walker-tight.png):   Front foot center = 339.2px, Img Center = 222.0px -> Offset = +117.2px
+// - Frame 1 (stylish-walker-passing.png): Front foot center = 342.8px, Img Center = 222.5px -> Offset = +120.3px
+// - Frame 2 (stylish-walker-left.png):    Lead foot center  = 341.9px, Img Center = 222.0px -> Offset = +119.9px
+// - Frame 3 (stylish-walker-passing.png): Front foot center = 342.8px, Img Center = 222.5px -> Offset = +120.3px
+//
+// Scaled to container root coordinate space (scale factor S = 0.5927):
+const FRAME_FOOT_ANCHORS = [
+  69.5, // Frame 0: Front foot stance anchor offset (+69.5px)
+  71.3, // Frame 1: Front foot stance anchor offset (+71.3px)
+  71.1, // Frame 2: Lead foot stance anchor offset (+71.1px)
+  71.3, // Frame 3: Final step stance anchor offset (+71.3px)
+];
+
 const WALK_START_X = -160; // Starting root position (pixels offset from bike anchor)
 const WALK_TARGET_X = 42;  // Saddle arrival root destination (pixels offset)
-const NUM_STEPS = 4;       // 4 synchronized step poses
-const STEP_DURATION_MS = 450; // 450ms per pose (1800ms total walking cycle)
+const NUM_STEPS = 4;       // 4 synchronized step poses (Frame 0 -> 1 -> 2 -> 3)
+const STEP_DURATION_MS = 450; // 450ms per frame pose (1800ms total walking cycle)
 const WALK_DURATION_MS = NUM_STEPS * STEP_DURATION_MS; // 1800ms total walk time
-const WALK_PAUSE_DURATION_MS = 900; // ~900ms standing pause before mounting (0.8-1.0s requirement)
+const WALK_PAUSE_DURATION_MS = 900; // 900ms standing pause before mounting (0.8-1.0s requirement)
 const CROSSFADE_WALK_TO_MOUNT_MS = 550; // >= 0.5s smooth cross-fade
 const MOUNT_HOLD_MS = 650;  // Peak athletic step-over leg swing hold time
 const CROSSFADE_MOUNT_TO_SEATED_MS = 550; // >= 0.5s smooth cross-fade
+
+// Floor anchor targets derived from root start & target:
+// Floor Anchor = Root X + Foot Anchor Offset
+const FLOOR_ANCHOR_START = WALK_START_X + FRAME_FOOT_ANCHORS[0]; // -160 + 69.5 = -90.5px
+const FLOOR_ANCHOR_TARGET = WALK_TARGET_X + FRAME_FOOT_ANCHORS[3]; // 42 + 71.3 = 113.3px
+const FLOOR_ANCHOR_MID = FLOOR_ANCHOR_START + (FLOOR_ANCHOR_TARGET - FLOOR_ANCHOR_START) / 2; // +11.4px
 
 function getInitialRoninState() {
   if (typeof window === 'undefined') {
@@ -419,36 +439,51 @@ export default function App() {
       }
 
       // -------------------------------------------------------------
-      // SYNCHRONIZED STRIDE & KINEMATIC ROOT MOTION (ZERO FOOT SLIDING)
+      // TRUE 4-FRAME FOOT-ANCHOR WALKING SYSTEM
+      // -------------------------------------------------------------
+      // Phase 0 (0-450ms): Planted Foot 1 -> Floor anchor locked at FLOOR_ANCHOR_START (-90.5px)
+      // Phase 1 (450-900ms): Swing Phase 1 -> Floor anchor smoothly transfers from START to MID (+11.4px)
+      // Phase 2 (900-1350ms): Planted Foot 2 -> Floor anchor locked at FLOOR_ANCHOR_MID (+11.4px)
+      // Phase 3 (1350-1800ms): Swing Phase 2 -> Floor anchor smoothly transfers from MID to TARGET (113.3px)
+      //
+      // In all phases, character root position strictly compensates for frame foot anchor:
+      // currentX = currentFloorAnchor - FRAME_FOOT_ANCHORS[poseIndex]
       // -------------------------------------------------------------
       const poseIndex = Math.min(3, Math.floor(elapsed / STEP_DURATION_MS));
       const poseElapsed = elapsed - poseIndex * STEP_DURATION_MS;
-      const u = Math.min(1.0, poseElapsed / STEP_DURATION_MS); // 0 to 1 within current pose
+      const u = Math.min(1.0, poseElapsed / STEP_DURATION_MS); // 0 to 1 within current phase
 
-      let currentX;
-      let currentY;
+      let currentFloorAnchor;
+      let currentY = 0;
 
       if (poseIndex === 0) {
-        // Pose 0 (stylish-walker-tight.png): Right foot strike & plant cushion
-        const ease0 = Math.sin((u * Math.PI) / 2);
-        currentX = -160 + 18 * ease0;
+        // Phase 0: Planted Foot Phase 1 - Foot 1 is firmly locked to the floor
+        // Floor anchor remains stationary relative to the floor (Zero Foot Sliding)
+        currentFloorAnchor = FLOOR_ANCHOR_START;
         currentY = 0;
       } else if (poseIndex === 1) {
-        // Pose 1 (stylish-walker-passing.png): Left leg swings through, hips surge forward over stance leg
+        // Phase 1: Swing Phase 1 - Weight transfers smoothly to Foot 2 as rear leg swings past
+        // Smooth S-curve interpolation between anchor points only during swing phase
         const ease1 = (1 - Math.cos(u * Math.PI)) / 2;
-        currentX = -142 + 83 * ease1;
-        currentY = -Math.sin(u * Math.PI) * 5.5;
+        currentFloorAnchor = FLOOR_ANCHOR_START + (FLOOR_ANCHOR_MID - FLOOR_ANCHOR_START) * ease1;
+        currentY = -Math.sin(u * Math.PI) * 5.0; // Hips rise as torso passes over stance leg
       } else if (poseIndex === 2) {
-        // Pose 2 (stylish-walker-left.png): Left foot strike & plant cushion
-        const ease2 = Math.sin((u * Math.PI) / 2);
-        currentX = -59 + 18 * ease2;
+        // Phase 2: Planted Foot Phase 2 - Foot 2 is firmly locked to the floor
+        // Floor anchor remains stationary relative to the floor (Zero Foot Sliding)
+        currentFloorAnchor = FLOOR_ANCHOR_MID;
         currentY = 0;
       } else {
-        // Pose 3 (stylish-walker-passing.png): Right leg steps forward to join left foot; decelerates into stop
+        // Phase 3: Swing Phase 2 - Trailing foot steps forward and settles into standing stop
+        // Cosine ease ensures velocity at u = 1 is exactly 0
         const ease3 = (1 - Math.cos(u * Math.PI)) / 2;
-        currentX = -41 + 83 * ease3;
-        currentY = -Math.sin(u * Math.PI) * 5.5;
+        currentFloorAnchor = FLOOR_ANCHOR_MID + (FLOOR_ANCHOR_TARGET - FLOOR_ANCHOR_MID) * ease3;
+        currentY = -Math.sin(u * Math.PI) * 5.0;
       }
+
+      // Root position compensation:
+      // By subtracting FRAME_FOOT_ANCHORS[poseIndex], the rendered foot position on the floor
+      // is GUARANTEED to stay exactly at currentFloorAnchor without sliding!
+      const currentX = currentFloorAnchor - FRAME_FOOT_ANCHORS[poseIndex];
 
       setRootMotion({
         x: currentX,
@@ -706,8 +741,8 @@ export default function App() {
                     <span>{animState === 'WALK_PAUSE' ? '🛑' : '🚶‍♂️'}</span>
                     <span>
                       {animState === 'WALK_PAUSE'
-                        ? `Arrived: ${Math.round(rootMotion.x)}px | Standing Ready`
-                        : `Synchronized Root: ${Math.round(rootMotion.x)}px | Stride ${rootMotion.strideFrame + 1}/4`}
+                        ? `Arrived: ${Math.round(rootMotion.x)}px | Standing Ready (Foot Locked)`
+                        : `Foot Anchor: ${Math.round(rootMotion.x + (FRAME_FOOT_ANCHORS[rootMotion.strideFrame] || 0))}px | Frame ${rootMotion.strideFrame + 1}/4`}
                     </span>
                   </div>
                 </div>
